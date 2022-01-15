@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Deploy a Remix Contract</title>
+
+    <link rel="stylesheet" type="text/css" href="/main.css">
+
+    <!-- <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script> -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+
+</head>
+
+<body>
+    <div>
+        <h1>Ethereum Secret Messenger</h1>
+        <span>Get faucet in Ropsten testnet: <a href="https://faucet.ropsten.be" target="_blank">https://faucet.ropsten.be</a></span></br> 
+        <span>Contract: <a href="https://ropsten.etherscan.io/address/0xf187044a59086909e19cd5748ada6e6c16857938" target="_blank">https://ropsten.etherscan.io/address/0xf187044a59086909e19cd5748ada6e6c16857938</a></span></br>
+        <hr>
+
+        <h2>1. Connect Wallet</h2>
+        <button class="enableEthereumButton">Enable Ethereum</button>
+        <h3>Account: <span class="showAccount"></span></h3>
+        <hr>
+
+        <h2>2. Sent message to Ethereum blockchain</h2>
+        <input id="userInput" type="text"/>
+        <label for="message">This site writes a secret message to the Ethereum
+            blockchain!</label>
+        <button id="setMessageButton" disabled="true">Send secret message</button>
+        <h3>Status: <span class="showStatus"></span></h3>
+        <hr>
+
+        <h2>3. Get message from Ethereum blockchain</h2>
+        <button id="getMessageButton">Get secret message</button>
+        <h3>Message: <span class="showMessage"></span></h3>
+    
+    </div>
+
+
+
+    <script>
+        
+        var accounts, account;
+
+        if (typeof window.ethereum !== 'undefined') {
+            console.log('MetaMask is installed!');
+        }
+
+        const ethereumButton = document.querySelector('.enableEthereumButton');
+        const showAccount = document.querySelector('.showAccount');
+
+        ethereumButton.addEventListener('click', () => {
+            getAccount();
+        });
+
+        async function getAccount() {
+            accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+            account = accounts[0];
+            showAccount.innerHTML = account;
+
+            if (account.length>0){
+                $("#setMessageButton").prop('disabled', false);
+            }
+        }
+
+        // getAccount();
+
+        // Connect a the web3 provider
+        if (typeof web3 !== 'undefined') {
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            console.log('web3 is undefined')
+            web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/ede36d5536d24e308dabde0ef6a55edf"));
+        }
+
+        // Set a default account
+        web3.eth.defaultAccount = account; //web3.eth.accounts[0];
+
+        var abi = JSON.parse(`[
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "x",
+                        "type": "string"
+                    }
+                ],
+                "name": "setMessage",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "getMessage",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ]`);
+
+        var contract_address = "0xf187044A59086909E19CD5748aDa6e6C16857938";
+
+        // Get the contract address
+        var myMessage = new web3.eth.Contract(abi, contract_address);
+
+        console.log(myMessage);
+
+        $("#setMessageButton").click(function () {
+            $("#setMessageButton").prop('disabled', true);
+            $(".showStatus")[0].innerHTML = "sending...";
+
+            web3.eth.defaultAccount = account;
+            myMessage.methods.setMessage($("#userInput").val()).send({from:account}).then(function (res) {
+                console.log("The balance is: ", res)
+
+                $("#setMessageButton").prop('disabled', false);
+                $(".showStatus")[0].innerHTML = "success";
+            })
+        });
+
+        $("#getMessageButton").click(function () {
+            $(".showMessage")[0].innerHTML = "getting...";
+            myMessage.methods.getMessage().call(function (err, res) {
+                console.log(res);
+                $(".showMessage")[0].innerHTML = res;
+            });
+        });
+
+    </script>
+</body>
+
+</html>
